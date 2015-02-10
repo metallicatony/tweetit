@@ -1,4 +1,2 @@
 user.consumer_key=ABCD
 user.consumer_secret=EFGH
-user.access_token=IJKL
-user.access_token_secret=MNOP

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite failures="0" time="0.011" errors="0" skipped="0" tests="1" name="com.client.twitter.AppTest">
+<testsuite failures="0" time="0.01" errors="0" skipped="0" tests="1" name="com.client.twitter.AppTest">
   <properties>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
     <property name="sun.boot.library.path" value="C:\opt\Java\jre\bin"/>
@@ -25,7 +25,7 @@
     <property name="java.vm.specification.vendor" value="Sun Microsystems Inc."/>
     <property name="user.variant" value=""/>
     <property name="os.name" value="Windows 7"/>
-    <property name="classworlds.conf" value="C:\Users\skanniah\ws\.metadata\.plugins\org.eclipse.m2e.core\launches\m2conf3642814941760745192.tmp"/>
+    <property name="classworlds.conf" value="C:\Users\skanniah\ws\.metadata\.plugins\org.eclipse.m2e.core\launches\m2conf2340762298735170730.tmp"/>
     <property name="sun.jnu.encoding" value="Cp1252"/>
     <property name="java.library.path" value="C:\opt\Java\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files (x86)\Microsoft Application Virtualization Client;C:\Program Files\WIDCOMM\Bluetooth Software\;C:\Program Files\WIDCOMM\Bluetooth Software\syswow64;C:\opt\apache-maven-3.0.4\bin;C:\opt\Java\bin;C:\Program Files\TortoiseGit\bin;C:\Program Files\Common Files\Hitachi ID\;C:\Program Files (x86)\Git\cmd;C:\Program Files (x86)\Git\bin;C:\Informatica\PowerCenter8.6.0\server\bin;C:\oraclexe\app\oracle\product\11.2.0\server\bin;C:\Program Files (x86)\RSA SecurID Token Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\Program Files (x86)\QuickTime\QTSystem\;."/>
     <property name="java.specification.name" value="Java Platform API Specification"/>

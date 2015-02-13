@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import twitter4j.HttpResponseCode;
+import twitter4j.MediaEntity;
 import twitter4j.Query;
 import twitter4j.QueryResult;
 import twitter4j.Status;
@@ -121,6 +124,7 @@ public class Tweetit {
 		Options options = new Options();
 		options.addOption("retweet", false, "retweets the latest tweets");
 		options.addOption("tweet", false, "tweets the contents from spreadsheet");
+		options.addOption("clone", false, "clones tweets under a hashtag");
 		options.addOption("count", true, "count of tweets to retweet");
 		options.addOption("until", true, "tweets until date in format YYYY-MM-DD");
 		options.addOption("spreadsheet", true, "tweet using content from spreadsheet path");
@@ -147,7 +151,12 @@ public class Tweetit {
 			CommandLine cmd = parser.parse(options, args);
 			//log.info("given options: {}", cmd.getOptions());
 			
-			Integer interval;interval = getIntervalBetweenTweets(cmd, properties);
+			Integer interval = getIntervalBetweenTweets(cmd, properties);
+			requestedTotalRTCount = Integer.valueOf(properties.getProperty("retweet.count"));
+			qw = properties.getProperty("search.hashtag");
+			if (properties.containsKey("search.perquery.count")) {
+				perQueryCount = Integer.valueOf(properties.getProperty("search.perquery.count"));
+			}
 			
 			// search and retweet
 			if (cmd.hasOption("retweet")) {
@@ -155,19 +164,13 @@ public class Tweetit {
 				if (cmd.hasOption("until")) {
 					untilDate = cmd.getOptionValue("until");
 				}
+				
 				if (cmd.hasOption("count")) {
 					requestedTotalRTCount = Integer.valueOf(cmd.getOptionValue("count"));
-				} else {
-					requestedTotalRTCount = Integer.valueOf(properties.getProperty("retweet.count"));
 				}
 
 				if (cmd.hasOption("search")) {
 					qw = cmd.getOptionValue("search");
-				} else {
-					throw new ParseException("missing search argument!! for example --search #H4EAD");
-				}
-				if (properties.containsKey("search.perquery.count")) {
-					perQueryCount = Integer.valueOf(properties.getProperty("search.perquery.count"));
 				}
 				
 				log.info("retweet count={} untilDate={} searchKeyword={} perSearchCount={}", new Object[] {requestedTotalRTCount, untilDate, qw, perQueryCount});
@@ -193,8 +196,77 @@ public class Tweetit {
 				tweetAllTweets(tweets, interval);
 			}
 			
+			if (cmd.hasOption("clone")) {
+				if (cmd.hasOption("count")) {
+					requestedTotalRTCount = Integer.valueOf(cmd.getOptionValue("count"));
+				}
+				
+				if (cmd.hasOption("search")) {
+					qw = cmd.getOptionValue("search");
+				}
+				
+				if (cmd.hasOption("until")) {
+					untilDate = cmd.getOptionValue("until");
+				}
+				log.info("clone tweets count={} searchKeyword={} perSearchCount={}", new Object[] {requestedTotalRTCount, qw, perQueryCount});
+				List<Status> status = searchTweets(qw, perQueryCount, requestedTotalRTCount, untilDate);
+				log.info("total size of searched tweets={}", status.size());
+				//retweet(status, interval);
+				//Status status = getTweet();
+				cloneTweet(status, interval);
+			}
+			
 		}
 	
+	private static Status getTweet() throws TwitterException {
+		Long i = new Long("565746001890127872");
+		Status status = twitter.showStatus(i.longValue());
+		return status;
+	}
+	
+	private static void cloneTweet(List<Status> statuses, Integer interval)
+			throws MalformedURLException, IOException {
+		int counter=0;
+		for (Status status : statuses) {
+			try {
+				String statusText = status.getText();
+				StatusUpdate clonedStatus;
+
+				if (status.getText().startsWith("RT")) {
+					statusText = statusText
+							.substring(statusText.indexOf(":") + 2);
+				}
+
+				clonedStatus = new StatusUpdate(statusText);
+				/*
+				 * if (status.getMediaEntities().length > 0) { statusText =
+				 * statusText.substring(0, 110); MediaEntity[] media =
+				 * status.getMediaEntities();
+				 * log.info("cloning media text={} URL={}", statusText,
+				 * media[0].getMediaURL()); InputStream is = new
+				 * URL(media[0].getMediaURL()).openStream();
+				 * clonedStatus.media("c", is); }
+				 */
+				twitter.updateStatus(clonedStatus);
+				log.info("cloning #{} tweet#={} text={}", new Object[] {(counter+1), status.getId(), statusText});
+				// sleeps for the given interval
+				if (++counter <= statuses.size()) {
+					sleepForInterval(interval);
+				}
+			} catch (TwitterException e) {
+				// log.error(
+				// "twitter exception statusCode={}, exceptionCode={}, errorCode={} accessLevel={} rateLimitStatus={}",
+				// new Object[] { e.getStatusCode(), e.getExceptionCode(),
+				// e.getErrorCode(), e.getAccessLevel(), e.getRateLimitStatus()
+				// });
+				if (e.getStatusCode() == HttpResponseCode.TOO_MANY_REQUESTS) {
+					log.error(
+							"TOO_MANY_REQUESTS RATE_LIMITED: received twitter exception={}",
+							e.getMessage());
+				}
+			}
+		}
+	}
 	
 	private static Integer getIntervalBetweenTweets(CommandLine cmd, Properties properties) {
 		Integer interval = Integer.valueOf(properties.getProperty("tweet.interval"));

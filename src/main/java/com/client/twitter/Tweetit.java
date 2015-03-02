@@ -218,25 +218,29 @@ public class Tweetit {
 			
 		}
 	
-	private static Status getTweet() throws TwitterException {
-		Long i = new Long("565746001890127872");
-		Status status = twitter.showStatus(i.longValue());
-		return status;
-	}
-	
 	private static void cloneTweet(List<Status> statuses, Integer interval)
 			throws MalformedURLException, IOException {
 		int counter=0;
 		for (Status status : statuses) {
 			try {
-				String statusText = status.getText();
-				StatusUpdate clonedStatus;
-
-				if (status.getText().startsWith("RT")) {
-					statusText = statusText
-							.substring(statusText.indexOf(":") + 2);
+				String statusText;
+				
+				if (status.getRetweetedStatus() != null
+						&& status.getRetweetedStatus().getText() != null
+						&& status.getRetweetedStatus().getText().length() > 0) {
+					statusText = status.getRetweetedStatus().getText();
+					//log.info("using retweeted status text over status text");
+					//log.info("retweeted_status={} status_text={}", statusText, status.getText());
+				} else {
+					statusText = status.getText();
 				}
-
+				
+				StatusUpdate clonedStatus;
+//				if (status.getText().startsWith("RT")) {
+//					statusText = statusText
+//							.substring(statusText.indexOf(":") + 2);
+//				}
+//				statusText = statusText.replaceAll("[!$%^&()_\\+={}\\[\\]|\\\\*\"\';<,>\\.\\?~-]+", "");
 				clonedStatus = new StatusUpdate(statusText);
 				/*
 				 * if (status.getMediaEntities().length > 0) { statusText =

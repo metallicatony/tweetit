@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +23,6 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import twitter4j.HttpResponseCode;
-import twitter4j.MediaEntity;
 import twitter4j.Query;
 import twitter4j.QueryResult;
 import twitter4j.Status;
@@ -37,7 +34,11 @@ import twitter4j.auth.AccessToken;
 
 
 /**
- * A simple twitter client to tweet text and images from spreadsheet
+ * A simple twitter client to tweet , retweet and clone text and images
+ * Search tweets with a specific hashtag from twitter stream and retweeting them back in your timeline
+ * Searching tweets with a specific hashtag from twitter stream, clone such tweets and tweet them to your timeline as new tweets
+ * Tweeting status messages and pictures that can be picked from a source of data, currently being a spreadsheet. The pictures need not be embedded in the spreadsheet but just an absolute path (reference) to pictures in your hard drive has to go in the spreadsheet
+ * 
  * Supported options
  * --tweet
  *   --spreadsheet "C:\My Documents\tweetit\tweets.xls" (default "C:\tweetit\tweets.xls")
@@ -46,8 +47,12 @@ import twitter4j.auth.AccessToken;
  *   --count 200 (default 500)
  *   --search "H4EAD" (default "H4EAD OR H4EADJAN15")
  *   --until 01/22/2015 (default today)
+ * --clone
+ *   --count 250 (default 500)
+ *   --search "H4EAD" (default "H4EAD OR H4EADJAN15")
+ *   
  * @author skanniah
- *
+ * @see http://metallicatony.blogspot.com/2015/02/tweetit-simple-bulk-tweeter.html
  */
 public class Tweetit {
 	private static final Logger log = LoggerFactory.getLogger(Tweetit.class);
@@ -136,6 +141,7 @@ public class Tweetit {
 	}
 	
 	/**
+	 * 
 	 * @param options
 	 * @param properties
 	 * @param args
@@ -144,134 +150,113 @@ public class Tweetit {
 	 * @throws TwitterException
 	 * @throws ParseException 
 	 */
-	private static void tweetit(Options options, Properties properties,
-			String[] args) throws BiffException, IOException, TwitterException, ParseException {
-		
-		CommandLineParser parser = new BasicParser();
-			CommandLine cmd = parser.parse(options, args);
-			//log.info("given options: {}", cmd.getOptions());
-			
-			Integer interval = getIntervalBetweenTweets(cmd, properties);
-			requestedTotalRTCount = Integer.valueOf(properties.getProperty("retweet.count"));
-			qw = properties.getProperty("search.hashtag");
-			if (properties.containsKey("search.perquery.count")) {
-				perQueryCount = Integer.valueOf(properties.getProperty("search.perquery.count"));
-			}
-			
-			// search and retweet
-			if (cmd.hasOption("retweet")) {
-				
-				if (cmd.hasOption("until")) {
-					untilDate = cmd.getOptionValue("until");
-				}
-				
-				if (cmd.hasOption("count")) {
-					requestedTotalRTCount = Integer.valueOf(cmd.getOptionValue("count"));
-				}
+	private static void tweetit(Options options, Properties properties, String[] args) throws BiffException, IOException, TwitterException, ParseException {
 
-				if (cmd.hasOption("search")) {
-					qw = cmd.getOptionValue("search");
-				}
-				
-				log.info("retweet count={} untilDate={} searchKeyword={} perSearchCount={}", new Object[] {requestedTotalRTCount, untilDate, qw, perQueryCount});
-				List<Status> status = searchTweets(qw, perQueryCount, requestedTotalRTCount, untilDate);
-				log.info("total size of searched tweets={}", status.size());
-				retweet(status, interval);
-			}
-			
-			if (cmd.hasOption("tweet")) {
-				if (cmd.hasOption("spreadsheet")) {
-					spreadsheetPath = cmd.getOptionValue("spreadsheet");
-				} else {
-					spreadsheetPath = properties.getProperty("spreadsheet.path");
-				}
-				
-				log.info("tweets approximately every {} seconds", interval);
-				// log.info("new tweets spreadsheet={}", spreadsheetPath);
-				
-				// get status from spreadsheet and tweet
-				tweets = getTweetsFromSpreadsheet(spreadsheetPath);
-				
-				// tweet given contents
-				tweetAllTweets(tweets, interval);
-			}
-			
-			if (cmd.hasOption("clone")) {
-				if (cmd.hasOption("count")) {
-					requestedTotalRTCount = Integer.valueOf(cmd.getOptionValue("count"));
-				}
-				
-				if (cmd.hasOption("search")) {
-					qw = cmd.getOptionValue("search");
-				}
-				
-				if (cmd.hasOption("until")) {
-					untilDate = cmd.getOptionValue("until");
-				}
-				log.info("clone tweets count={} searchKeyword={} perSearchCount={}", new Object[] {requestedTotalRTCount, qw, perQueryCount});
-				List<Status> status = searchTweets(qw, perQueryCount, requestedTotalRTCount, untilDate);
-				log.info("total size of searched tweets={}", status.size());
-				//retweet(status, interval);
-				//Status status = getTweet();
-				cloneTweet(status, interval);
-			}
-			
+		CommandLineParser parser = new BasicParser();
+		CommandLine cmd = parser.parse(options, args);
+
+		Integer interval = getIntervalBetweenTweets(cmd, properties);
+		requestedTotalRTCount = Integer.valueOf(properties.getProperty("retweet.count"));
+		qw = properties.getProperty("search.hashtag");
+		if (properties.containsKey("search.perquery.count")) {
+			perQueryCount = Integer.valueOf(properties.getProperty("search.perquery.count"));
 		}
+
+		// search and retweet
+		if (cmd.hasOption("retweet")) {
+
+			if (cmd.hasOption("until")) {
+				untilDate = cmd.getOptionValue("until");
+			}
+
+			if (cmd.hasOption("count")) {
+				requestedTotalRTCount = Integer.valueOf(cmd.getOptionValue("count"));
+			}
+
+			if (cmd.hasOption("search")) {
+				qw = cmd.getOptionValue("search");
+			}
+
+			log.info("retweet count={} untilDate={} searchKeyword={} perSearchCount={}", new Object[] { requestedTotalRTCount, untilDate, qw, perQueryCount });
+			List<Status> status = searchTweets(qw, perQueryCount, requestedTotalRTCount, untilDate);
+			log.info("total size of searched tweets={}", status.size());
+			retweet(status, interval);
+		} else if (cmd.hasOption("tweet")) {
+			// tweet using a spreadsheet
+			if (cmd.hasOption("spreadsheet")) {
+				spreadsheetPath = cmd.getOptionValue("spreadsheet");
+			} else {
+				spreadsheetPath = properties.getProperty("spreadsheet.path");
+			}
+
+			// get status from spreadsheet and tweet
+			tweets = getTweetsFromSpreadsheet(spreadsheetPath);
+			// tweet given contents
+			tweetAllTweets(tweets, interval);
+		} else if (cmd.hasOption("clone")) {
+			// clone tweets with a specific hashtag
+			if (cmd.hasOption("count")) {
+				requestedTotalRTCount = Integer.valueOf(cmd
+						.getOptionValue("count"));
+			}
+
+			if (cmd.hasOption("search")) {
+				qw = cmd.getOptionValue("search");
+			}
+
+			if (cmd.hasOption("until")) {
+				untilDate = cmd.getOptionValue("until");
+			}
+			log.info("clone tweets count={} searchKeyword={} perSearchCount={}", new Object[] { requestedTotalRTCount, qw, perQueryCount });
+			List<Status> status = searchTweets(qw, perQueryCount, requestedTotalRTCount, untilDate);
+			log.info("total size of searched tweets={}", status.size());
+			cloneTweet(status, interval);
+		}
+
+	}
 	
-	private static void cloneTweet(List<Status> statuses, Integer interval)
-			throws MalformedURLException, IOException {
-		int counter=0;
+	/**
+	 * Clones tweets pulled from twitter's global stream
+	 * @param statuses
+	 * @param interval
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	private static void cloneTweet(List<Status> statuses, Integer interval) throws MalformedURLException, IOException {
+		int counter = 0;
 		for (Status status : statuses) {
 			try {
 				String statusText;
-				
+
 				if (status.getRetweetedStatus() != null
 						&& status.getRetweetedStatus().getText() != null
 						&& status.getRetweetedStatus().getText().length() > 0) {
 					statusText = status.getRetweetedStatus().getText();
-					//log.info("using retweeted status text over status text");
-					//log.info("retweeted_status={} status_text={}", statusText, status.getText());
 				} else {
 					statusText = status.getText();
 				}
-				
+
 				StatusUpdate clonedStatus;
-//				if (status.getText().startsWith("RT")) {
-//					statusText = statusText
-//							.substring(statusText.indexOf(":") + 2);
-//				}
-//				statusText = statusText.replaceAll("[!$%^&()_\\+={}\\[\\]|\\\\*\"\';<,>\\.\\?~-]+", "");
 				clonedStatus = new StatusUpdate(statusText);
-				/*
-				 * if (status.getMediaEntities().length > 0) { statusText =
-				 * statusText.substring(0, 110); MediaEntity[] media =
-				 * status.getMediaEntities();
-				 * log.info("cloning media text={} URL={}", statusText,
-				 * media[0].getMediaURL()); InputStream is = new
-				 * URL(media[0].getMediaURL()).openStream();
-				 * clonedStatus.media("c", is); }
-				 */
 				twitter.updateStatus(clonedStatus);
-				log.info("cloning #{} tweet#={} text={}", new Object[] {(counter+1), status.getId(), statusText});
+				log.info("cloning #{} tweet#={} text={}", new Object[] {(counter + 1), status.getId(), statusText});
+
 				// sleeps for the given interval
 				if (++counter <= statuses.size()) {
 					sleepForInterval(interval);
 				}
 			} catch (TwitterException e) {
-				// log.error(
-				// "twitter exception statusCode={}, exceptionCode={}, errorCode={} accessLevel={} rateLimitStatus={}",
-				// new Object[] { e.getStatusCode(), e.getExceptionCode(),
-				// e.getErrorCode(), e.getAccessLevel(), e.getRateLimitStatus()
-				// });
-				if (e.getStatusCode() == HttpResponseCode.TOO_MANY_REQUESTS) {
-					log.error(
-							"TOO_MANY_REQUESTS RATE_LIMITED: received twitter exception={}",
-							e.getMessage());
-				}
+				log.error("received twitter exception", e);
 			}
 		}
 	}
 	
+	/**
+	 * Returns time to wait between tweets
+	 * @param cmd
+	 * @param properties
+	 * @return
+	 */
 	private static Integer getIntervalBetweenTweets(CommandLine cmd, Properties properties) {
 		Integer interval = Integer.valueOf(properties.getProperty("tweet.interval"));
 		if (cmd.hasOption("every")) {
@@ -282,7 +267,7 @@ public class Tweetit {
 	}
 	
 	/**
-	 * Tweets the given set of data
+	 * Tweets given set of messages
 	 * @param tweetsFromSpreadsheet the tweets from spreadsheet
 	 * @param interval time in seconds
 	 */
@@ -299,10 +284,10 @@ public class Tweetit {
 		}
 	}
 	
+
 	/**
-	 * Sleeps for the given interval (intentionally approximate so that twitter
-	 * folks cannot straight predict this app
-	 * 
+	 * Sleeps for a given interval
+	 * @param interval time in seconds
 	 */
 	private static void sleepForInterval(Integer interval) {
 		try {
@@ -324,8 +309,7 @@ public class Tweetit {
 		try {
 			
 			// get first 140 chars
-			String statusText = (tweet.getStatusText() != null && tweet
-					.getStatusText().length() > 140) ? tweet.getStatusText().substring(0, 140) : tweet.getStatusText();
+			String statusText = (tweet.getStatusText() != null && tweet.getStatusText().length() > 140) ? tweet.getStatusText().substring(0, 140) : tweet.getStatusText();
 			StatusUpdate updateStatus = new StatusUpdate(statusText);
 			
 			// upload image
@@ -341,12 +325,8 @@ public class Tweetit {
 					new Object[] { status.getId(), index,
 							tweet.getStatusText(), tweet.getStatusImage() });
 		} catch (TwitterException e) {
-			log.error(
-					"twitter exception statusCode={}, exceptionCode={}, errorCode={} accessLevel={} rateLimitStatus={}",
+			log.error("twitter exception statusCode={}, exceptionCode={}, errorCode={} accessLevel={} rateLimitStatus={}",
 					new Object[] { e.getStatusCode(), e.getExceptionCode(), e.getErrorCode(), e.getAccessLevel(), e.getRateLimitStatus(), e });
-			if (e.getStatusCode() == HttpResponseCode.FORBIDDEN) {
-				log.error("received twitter exception={}", e.getMessage());
-			}
 		}
 	}
 	
@@ -380,8 +360,6 @@ public class Tweetit {
 					tweet = new Tweet(text, image);
 					tweetContents.put(sno, tweet);
 				}
-				 
-				//log.info("sno={} text={} image={}", new Object[] {sno, text, image});
 			}
 		}
 		return tweetContents;
@@ -422,25 +400,18 @@ public class Tweetit {
 					sleepForInterval(interval);
 				}
 			} catch (TwitterException e) {
-//				log.error(
-//						"twitter exception statusCode={}, exceptionCode={}, errorCode={} accessLevel={} rateLimitStatus={}",
-//						new Object[] { e.getStatusCode(), e.getExceptionCode(), e.getErrorCode(), e.getAccessLevel(), e.getRateLimitStatus() });
-				if (e.getStatusCode() == HttpResponseCode.TOO_MANY_REQUESTS) {
-					log.error("TOO_MANY_REQUESTS RATE_LIMITED: received twitter exception={}", e.getMessage());
-				}
+					log.error("received twitter exception", e);
 			}
 		}
 	}
 	
 	/**
-	 * Returns a specified number of tweets matching a given keyword
+	 * Returns a specified number of tweets matching a given hashtag keyword
 	 * @param qw
 	 * @return List<Status> list of status
 	 * @throws TwitterException
 	 */
-	private static List<Status> searchTweets(String qw, int perQueryCount,
-			int requestedTotalRTCount, String untilDate)
-			throws TwitterException {
+	private static List<Status> searchTweets(String qw, int perQueryCount, int requestedTotalRTCount, String untilDate) throws TwitterException {
 		
 		Query searchQuery = new Query(qw);
 		searchQuery.setCount(perQueryCount);
@@ -462,7 +433,6 @@ public class Tweetit {
 				searchQuery.setCount(difference);
 				searchQuery.setMaxId(maxId - 1);
 
-//				log.info("query={}", searchQuery);
 				result = twitter.search(searchQuery);
 				List<Status> status = result.getTweets();
 
@@ -475,8 +445,10 @@ public class Tweetit {
 		return resultStatuses;
 	}
 	
+
 	/**
-	 * Sets OAuth credentials
+	 * Sets OAuth credentials using properties
+	 * @param properties
 	 */
 	private static void setOAuthCredentials(Properties properties) {
 		String CONSUMER_KEY = properties.getProperty("user.consumer_key");

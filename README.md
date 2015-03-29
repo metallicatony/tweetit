@@ -1,5 +1,5 @@
 Tweetit
 --------
-Tweetit is a pretty simple java based command-line bulk tweeter application capable of automatically tweeting, retweeting and cloning existing tweets from twitter stream. Tweetit was primarily created for the ones who work for twitter campaigns fighting for a good cause. This application can be further extended to schedule tweets using readily available scheduler tools that come pre-installed with any operating system. It may also be useful for product marketing and sales announcements using a trending hashtag to get maximum reach.
+Tweetit is a pretty simple java based command-line bulk tweeter application capable of automatically tweeting, retweeting and cloning existing tweets from twitter stream. Tweetit was primarily created for the ones who work for twitter campaigns fighting for a good cause. It may also be useful for product marketing and sales announcements using a trending hashtag to get maximum reach. This application can be further extended to schedule tweets using readily available scheduler tools that come pre-installed with any operating system.
 
 More about Tweetit can be read here http://metallicatony.blogspot.com/2015/02/tweetit-simple-bulk-tweeter.html

@@ -108,6 +108,10 @@ public class Tweetit {
 		}
 		
 		log.info("keyfilePath={}", keyFile);
+		
+		if (cmd.hasOption("propfile")) {
+			propsFile = cmd.getOptionValue("propfile");
+		}
 		log.info("propsFilePath={}", propsFile);
 		
 		Properties properties = new Properties();
@@ -134,6 +138,7 @@ public class Tweetit {
 		options.addOption("until", true, "tweets until date in format YYYY-MM-DD");
 		options.addOption("spreadsheet", true, "tweet using content from spreadsheet path");
 		options.addOption("keyfile", true, "file containing twitter token keys");
+		options.addOption("propfile", true, "file containing tweetit properties");
 		options.addOption("search", true, "keyword to search tweets for");
 		options.addOption("every", true, "interval between tweets in seconds");
 		//log.info("supported options: {}", options);
@@ -261,7 +266,7 @@ public class Tweetit {
 		Integer interval = Integer.valueOf(properties.getProperty("tweet.interval"));
 		if (cmd.hasOption("every")) {
 			Integer givenInterval = Integer.valueOf(cmd.getOptionValue("every"));
-			interval = Integer.valueOf(cmd.getOptionValue("every")) > interval ? givenInterval : interval;
+			interval = givenInterval > interval ? givenInterval : interval;
 		}
 		return interval;
 	}
@@ -308,8 +313,9 @@ public class Tweetit {
 	private static void tweet(String index, Tweet tweet) {
 		try {
 			
-			// get first 140 chars
-			String statusText = (tweet.getStatusText() != null && tweet.getStatusText().length() > 140) ? tweet.getStatusText().substring(0, 140) : tweet.getStatusText();
+			// get first 280 chars
+			String statusText = (tweet.getStatusText() != null && tweet.getStatusText().length() > 280) ? tweet.getStatusText().substring(0, 280) : tweet.getStatusText();
+			log.info("Status Text from spreadsheet....... statusText={}", tweet.getStatusText());
 			StatusUpdate updateStatus = new StatusUpdate(statusText);
 			
 			// upload image
